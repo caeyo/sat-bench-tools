@@ -1,0 +1,1 @@
+benchmark,time,number_vars,number_clauses,restarts,conflicts,decisions,propagations,conflict_literals,percent_deleted_conflict_literals,memory,result
