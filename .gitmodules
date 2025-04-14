@@ -1,0 +1,3 @@
+[submodule "mkplot"]
+	path = mkplot
+	url = git@github.com:alexeyignatiev/mkplot.git
