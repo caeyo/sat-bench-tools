@@ -39,7 +39,7 @@ def csv_to_json(data_file_name, out_file, key_name):
 
 def create_plot(data_files, key, plot_type, out_file_name, mkplot_path, mkplot_args):
     try:
-        args = ["python3", mkplot_path, f"--key={key}", "--timeout=5000", f"--plot-type={plot_type}", f"--save-to={out_file_name}"]
+        args = ["python3", "-B", mkplot_path, f"--key={key}", "--timeout=5000", f"--plot-type={plot_type}", f"--save-to={out_file_name}"]
         if mkplot_args is not None:
             args.extend(mkplot_args)
 
