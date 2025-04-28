@@ -1,52 +1,35 @@
 #!/bin/bash
 
-if [ "$#" -ne 8 ]; then
-    echo "Usage: $0 <num_cores> <benchmark_dir> <benchmark_filter> <benchmark_tag> <csv_header_file> <result_dir> <run_cmd> <timeout>"
+if [ "$#" -ne 7 ]; then
+    echo "Usage: $0 <benchmark_dir> <benchmark_assigns> <benchmark_tag> <csv_header_file> <result_dir> <run_cmd> <timeout>"
     exit 1
 fi
 
-N=$1
-DIR=$2
-LIST=$3
-TAG=$4
-CSVHEADER=$5
-OUTDIR=$6
-CMD=$7
-TIMEOUT=$8
+DIR=$1
+ASSIGNS=$2
+TAG=$3
+CSVHEADER=$4
+OUTDIR=$5
+CMD=$6
+TIMEOUT=$7
 
 # Setup interrupt handling
 intfn() {
     pkill -f timeout
-    rm -rf "$tmp_dir"
+    rm -rf "$tmp_results"
     echo "Benchmark run for ${TAG} cancelled"
     exit
 }
 trap "intfn" INT
 
-tmp_dir=".tmp_$(date '+%Y-%m-%d-%H-%M-%S')"
-mkdir -p "$tmp_dir"
-
-# Create file lists
-files=($(ls $DIR | grep -f $LIST | shuf))
-total_files=${#files[@]}
-files_per_list=$((total_files / N))
-remainder=$((total_files % N))
-for ((i=0; i<N; i++)); do
-     start=$((i * files_per_list + (i < remainder ? i : remainder)))
-     end=$((start + files_per_list + (i < remainder ? 1 : 0)))
-    printf "%s\n" "${files[@]:start:end-start}" > "${tmp_dir}/file_list_$i.txt"
-done
-
-# Create results directory
-RESULTS_DIR="${tmp_dir}/results"
-mkdir -p "$RESULTS_DIR"
+tmp_results=".tmp_$(date '+%Y-%m-%d-%H-%M-%S')"
+mkdir -p "$tmp_results"
 
 # Allocate processes using taskset
-for ((i=0; i<N; i++)); do
-    file_list=$(cat "${tmp_dir}/file_list_$i.txt" | tr '\n' ',' | sed 's/,$//')
-    taskset -c $i bash -c "
-        for file in ${file_list//,/ }; do
-            timeout $TIMEOUT $CMD -csv \"$DIR/\$file\" \"$RESULTS_DIR/\${file%.cnf.gz}\" &> /dev/null 
+for file in $(ls "${ASSIGNS}"); do
+    taskset -c ${file%.txt} bash -c "
+        for bench in $(cat "${ASSIGNS}/${file}"); do
+            timeout $TIMEOUT $CMD -csv \"$DIR/\$bench\" \"$tmp_results/\${bench%.cnf.gz}\" &> /dev/null 
         done
     " &
 done
@@ -55,14 +38,14 @@ wait
 
 # Output the temporary results to consolidated csv file
 mkdir -p "${OUTDIR}"
-out_file="${OUTDIR}/${TAG}|$(basename $LIST)|$(date '+%Y-%m-%d-%H-%M-%S').csv"
+out_file="${OUTDIR}/${TAG}|$(basename $ASSIGNS)|$(date '+%Y-%m-%d-%H-%M-%S').csv"
 touch ${out_file}
 # Save command
 echo "${CMD}" >> ${out_file}
 # CSV header
 cat ${CSVHEADER} >> ${out_file}
 # Results
-for file in "${RESULTS_DIR}"/*; do
+for file in "${tmp_results}"/*; do
     fname=$(basename $file)
     echo -n "$fname" >> ${out_file}
     echo -n "," >> ${out_file}
@@ -71,6 +54,6 @@ for file in "${RESULTS_DIR}"/*; do
 done
 
 # cleanup
-rm -rf "$tmp_dir"
+rm -rf "$tmp_results"
 
 echo "Benchmark run for ${TAG} completed at $(date)"
