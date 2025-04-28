@@ -20,5 +20,6 @@ for ((i=0; i<N; i++)); do
     start=$((i * files_per_list + (i < remainder ? i : remainder)))
     end=$((start + files_per_list + (i < remainder ? 1 : 0)))
     echo -n "${files[start]}" > $OUTDIR/$i.txt
-    printf " %s" "${files[@]:start+1:end-start}" >> "$OUTDIR/$i.txt"
+    start=$((start+1))
+    printf " %s" "${files[@]:start:end-start}" >> "$OUTDIR/$i.txt"
 done
