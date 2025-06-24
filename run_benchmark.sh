@@ -26,10 +26,11 @@ tmp_results=".tmp_$(date '+%Y-%m-%d-%H-%M-%S')"
 mkdir -p "$tmp_results"
 
 # Allocate processes using taskset
+# minisat:            timeout $TIMEOUT $CMD -csv \"$DIR/\$bench\" \"$tmp_results/\${bench%.cnf.gz}\" &> /dev/null 
 for file in $(ls "${ASSIGNS}"); do
     taskset -c ${file%.txt} bash -c "
         for bench in $(cat "${ASSIGNS}/${file}"); do
-            timeout $TIMEOUT $CMD -csv \"$DIR/\$bench\" \"$tmp_results/\${bench%.cnf.gz}\" &> /dev/null 
+            timeout $TIMEOUT $CMD \"$DIR/\$bench\" -csv \"$tmp_results/\${bench%.cnf.gz}\" &> /dev/null 
         done
     " &
 done
